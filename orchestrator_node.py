@@ -184,6 +184,11 @@ class ThresherPipeline:
             self.phase_five_smart_organization(file_path, category)
         else:
             print(f"[REJECTED] Score ({overall}) too low. File remains in Staging for manual review/deep healing.")
+            # Rename the file so the loop doesn't infinitely re-process the exact same failure
+            try:
+                os.rename(file_path, file_path + ".rejected")
+            except Exception as e:
+                pass
 
 
 
@@ -198,10 +203,14 @@ if __name__ == "__main__":
     while True:
         try:
             for file in os.listdir(STAGING_DIR):
-                full_path = os.path.join(STAGING_DIR, file)
-                if os.path.isfile(full_path):
-                    thresher.process_file(full_path)
-            time.sleep(5)
+                # Only process files that haven't been marked as rejected
+                if not file.endswith('.rejected'):
+                    full_path = os.path.join(STAGING_DIR, file)
+                    if os.path.isfile(full_path):
+                        thresher.process_file(full_path)
+            
+            # Check the directory every 5 minutes (300 seconds) vs rapid polling
+            time.sleep(300)
         except KeyboardInterrupt:
             print("\nThresher Node shutting down.")
             sys.exit(0)
