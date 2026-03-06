@@ -1,0 +1,34 @@
+# MDEC THRESHER ORCHESTRATOR - DOCKERFILE
+# Combines Python3, PowerShell Core, and the MdEC Toolchain into a single Appliance Node
+
+# Base Image focusing on PowerShell Core inside Ubuntu (Official MS Image)
+FROM mcr.microsoft.com/powershell:lts-ubuntu-22.04
+
+# Set non-interactive timezone environment
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update system and install Python 3
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory for the application
+WORKDIR /app
+
+# The MdEC scripts and modules will be physically copied into the container
+COPY . /app/toolkit/
+
+# Create the internal Vault mapping directories
+RUN mkdir -p /app/vault/staging /app/vault/platinum_certified /tmp
+
+# (Optional) If you have python dependencies, you can install them here. 
+# RUN pip3 install -r /app/toolkit/requirements.txt
+
+# Set execution rights 
+RUN chmod +x /app/toolkit/orchestrator_node.py
+
+# When the node boots up, it starts the Python Daemon orchestrator
+WORKDIR /app/toolkit
+ENTRYPOINT ["python3", "-u", "orchestrator_node.py"]
