@@ -353,8 +353,8 @@ class SmartDataOrganizerPowerhouse:
 
 def main():
     parser = argparse.ArgumentParser(description="Smart MDEC Data Organizer Powerhouse")
-    parser.add_argument("--source", help="Source directory to scan")
-    parser.add_argument("--dest", required=True, help="Destination directory for MDEC structure")
+    parser.add_argument("--source", default=os.getenv("MDEC_SOURCE_PATH"), help="Source directory to scan (defaults to MDEC_SOURCE_PATH env var)")
+    parser.add_argument("--dest", default=os.getenv("MDEC_DEST_PATH"), help="Destination directory for MDEC structure (defaults to MDEC_DEST_PATH env var)")
     parser.add_argument("--live", action="store_true", help="DISABLE Dry Run and perform actual copy/move")
     parser.add_argument("--move", action="store_true", help="Move files instead of Copying (Saves space)")
     parser.add_argument("--category", help="Only process this category (e.g., 01_Documents)")
@@ -397,7 +397,11 @@ def main():
 
     # Require source for non-status operations
     if not args.source:
-        print("❌ Error: --source is required for processing operations")
+        print("❌ Error: --source is required (or set MDEC_SOURCE_PATH environment variable)")
+        sys.exit(1)
+    
+    if not args.dest:
+        print("❌ Error: --dest is required (or set MDEC_DEST_PATH environment variable)")
         sys.exit(1)
 
     print("🧠 SMART DATA ORGANIZER POWERHOUSE - INTELLIGENT MODE")
