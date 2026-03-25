@@ -37,7 +37,8 @@ class MDECAutoValidator:
             'files_checked': 0,
             'violations_found': 0,
             'fixes_applied': 0,
-            'files_fixed': 0
+            'files_fixed': 0,
+            'excellence_scores': []
         }
     
     def validate_path(self, path: str) -> Dict[str, Any]:
@@ -76,6 +77,20 @@ class MDECAutoValidator:
                 
                 if self.fix_mode:
                     self._apply_fixes(file_path, metadata, violations)
+            
+            # Excellence Evaluation
+            excellence_score = self._evaluate_excellence(metadata)
+            scores_list = self.stats.get('excellence_scores')
+            if isinstance(scores_list, list):
+                scores_list.append(excellence_score)
+            
+            if excellence_score < 70:
+                self.violations.append({
+                    'file': str(file_path),
+                    'type': 'LOW_EXCELLENCE_SCORE',
+                    'message': f'Excellence score {excellence_score} is below threshold 70',
+                    'fixable': False
+                })
         
         except Exception as e:
             self.violations.append({
@@ -188,6 +203,31 @@ class MDECAutoValidator:
         
         return violations
     
+    def _evaluate_excellence(self, metadata: Dict) -> int:
+        """
+        MdEC Quality Scorer: Evaluates adherence to excellence standards.
+        Ported from TitanessSentientOS logic.
+        """
+        score = 100
+        required = ["id", "name", "path", "category", "created", "modified", "checksum"]
+        
+        # Mapping variations in field names if necessary
+        # mdec_auto_validator uses 'created', 'modified' etc directly in metadata from _extract_metadata
+        
+        # Check for missing essentials
+        for field in required:
+            # Note: path/name might be in metadata under different keys or inferred
+            val = metadata.get(field)
+            if not val or val == "unassigned":
+                score -= 15
+        
+        # Sentience & Enrichment Bonuses
+        if metadata.get("sentient_layer"): score += 10
+        if metadata.get("neural_links") and len(metadata["neural_links"]) > 0: score += 5
+        if metadata.get("tags") and len(metadata["tags"]) > 0: score += 5
+        
+        return min(100, max(0, score))
+    
     def _apply_fixes(self, file_path: Path, metadata: Dict, violations: List[Dict]):
         """Apply automatic fixes to metadata"""
         fixed = False
@@ -285,9 +325,9 @@ class MDECAutoValidator:
             if dt:
                 return dt.isoformat() + 'Z'
             else:
-                return datetime.utcnow().isoformat() + 'Z'
-        except:
-            return datetime.utcnow().isoformat() + 'Z'
+                return datetime.now().isoformat() + 'Z'
+        except Exception:
+            return datetime.now().isoformat() + 'Z'
     
     def _infer_category(self, file_path: Path) -> str:
         """Infer category from file path/name"""
@@ -316,6 +356,7 @@ class MDECAutoValidator:
             'stats': self.stats,
             'violations': self.violations,
             'fixes_applied': self.fixes_applied,
+            'avg_excellence': sum(self.stats['excellence_scores']) / len(self.stats['excellence_scores']) if self.stats['excellence_scores'] else 0,
             'success': self.stats['violations_found'] == 0 or 
                       (self.fix_mode and self.stats['fixes_applied'] > 0)
         }
@@ -334,6 +375,7 @@ def format_report(result: Dict) -> str:
         f"Violations Found:   {stats['violations_found']}",
         f"Fixes Applied:      {stats['fixes_applied']}",
         f"Files Fixed:        {stats['files_fixed']}",
+        f"Avg Excellence:     {result['avg_excellence']:.1f}",
         "",
     ]
     

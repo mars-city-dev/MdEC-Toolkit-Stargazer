@@ -1,0 +1,22 @@
+# TITANESS INGESTION ENGINE (TIE) ORCHESTRATOR - DOCKERFILE
+# Base Image focusing on lightweight PowerShell Core inside Alpine
+FROM mcr.microsoft.com/powershell:lts-alpine-3.17
+
+# Install Python 3 without cache to keep the layer minuscule
+RUN apk add --no-cache python3 py3-pip
+
+# Set the working directory for the application
+WORKDIR /app
+
+# The MdEC scripts and modules will be physically copied into the container
+COPY . /app/toolkit/
+
+# Create the internal Vault mapping directories
+RUN mkdir -p /app/vault/staging /app/vault/platinum_certified /tmp
+
+# Set execution rights
+RUN chmod +x /app/toolkit/orchestrator_node.py
+
+# When the node boots up, it starts the Python Daemon orchestrator
+WORKDIR /app/toolkit
+ENTRYPOINT ["python3", "-u", "orchestrator_node.py"]

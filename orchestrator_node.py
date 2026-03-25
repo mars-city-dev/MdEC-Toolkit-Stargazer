@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-MDEC THRESHER ORCHESTRATOR - SWARM WORKER NODE
-----------------------------------------------
-Role: Containerized Daemon that binds the MdEC Toolkit to the Docker Swarm.
-Phases: 
-  0: Signet Minting (Identity)
-  1: Self-Healing Corrections (Phase 3 Core)
-  2: Predictive Categorization (Phase 3 Core)
-  3: AI Auto-Tagging (Phase 3 Core)
-  4: Quality Validation & Scoring
+TITANESS INGESTION ENGINE (TIE) ORCHESTRATOR
+--------------------------------------------
+Role: Core lifecycle engine for the Titaness Sentient Systems OS.
+5-Phase Bio-Digital Lifecycle:
+  1: Ingestion (Sensory Intake) - smart_data_organizer_powerhouse.py
+  2: Taxonomy (Perception / Ontology) - MDEC_Tagging_Taxonomy.psm1
+  3: Orchestration (Motor Control) - MDEC_Phase3_Orchestrator.psm1
+  4: Validation (Critical Reflection) - mdec_auto_validator.py
+  5: Indexing (Hippocampus) - Titaness_Data_Hyper_Indexer.py
 """
 
 import os
@@ -18,199 +18,106 @@ import time
 import subprocess
 from datetime import datetime
 
-# Import the existing Minter and Scorer
-try:
-    from TITANESS_Signet_Minter import mint_signet
-except ImportError:
-    # Fallback if execution context slightly differs
-    pass
-
-try:
-    from mdec_quality_scorer import MDECQualityScorer
-except ImportError:
-    pass
-
 # Directories mapped in Docker Volumes
 STAGING_DIR = "/app/vault/staging"
 VAULT_DIR = "/app/vault/platinum_certified"
 METADATA_MANIFEST = "/app/vault/mdec_manifest.json"
 
-class ThresherPipeline:
+class IngestionEnginePipeline:
     def __init__(self):
-        try:
-            self.scorer = MDECQualityScorer()
-        except NameError:
-            self.scorer = None
-            print("[WARN] Scorer module not loaded properly.")
-            
         os.makedirs(STAGING_DIR, exist_ok=True)
         os.makedirs(VAULT_DIR, exist_ok=True)
 
-    def phase_zero_mint(self, file_path, creator_name):
-        """Phase 0: Establish immutable Nano-NFT / Signet Identity"""
-        print(f"[PHASE 0] Minting Signet for: {file_path}")
-        
-        # We pass the required metadata for the Signet. 
-        # Inside the appliance, we pull this from the file or standard pipeline context.
-        # Fallback to a placeholder dict if mint_signet is pure CLI in some branches.
+    def run_script(self, command, phase_name):
+        """Helper to run shell/python/pwsh scripts and log output"""
+        print(f"[{phase_name}] Executing...")
         try:
-            signet_data = mint_signet(
-                name=creator_name, 
-                dob="1962-07-14", 
-                epoch=datetime.utcnow().strftime("%Y"), 
-                vocation="Engineered System", 
-                origin="MdEC Thresher"
-            )
-            # Normalize to dictionary if string returned
-            if isinstance(signet_data, str):
-                return {"m_id": f"urn:mdec:{os.urandom(16).hex()}", "signet_string": signet_data}
-            return signet_data
-        except Exception as e:
-            print(f"[WARN] Using default identity generation due to: {e}")
-            import uuid
-            mock_id = str(uuid.uuid4())
-            return {
-                "m_id": f"urn:mdec:{mock_id}", 
-                "signet_string": f"{creator_name}-07-14-1962-Engineered-System-Thresher"
-            }
+            result = subprocess.run(command, capture_output=True, text=True, check=True)
+            print(f"[{phase_name}] SUCCESS.")
+            return True, result.stdout
+        except subprocess.CalledProcessError as e:
+            print(f"[{phase_name}] FAILED: {e.stderr}")
+            return False, e.stderr
 
-    def phase_one_to_three_automation(self, manifest_path):
-        """Phases 1-3: Trigger the existing PowerShell Phase 3 Orchestrator"""
-        print(f"[PHASE 1-3] Engaging PowerShell AI Automation Pipeline...")
-        
-        ps_module = os.path.join(os.path.dirname(__file__), "MDEC_Phase3_Orchestrator.psm1")
-        
-        # We invoke PowerShell to import your module and run your exact Phase 3 function.
-        pwsh_command = f"Import-Module '{ps_module}'; Start-MDECAIAutomation -MetadataPath '{manifest_path}' -FullCycle"
-        
-        result = subprocess.run([
-            "pwsh", "-ExecutionPolicy", "Bypass", "-Command", pwsh_command
-        ], capture_output=True, text=True)
+    def phase_1_ingestion(self, file_path):
+        """Phase 1: Sensory Intake & Cryptographic Sorting"""
+        # Calling smart_data_organizer_powerhouse.py
+        cmd = ["python3", "smart_data_organizer_powerhouse.py", "--ingest", file_path]
+        return self.run_script(cmd, "PHASE 1: INGESTION")
 
-        if result.returncode != 0:
-            print(f"[ERROR] PS Core Pipeline Failed: {result.stderr}")
-            return False
-        
-        print(f"[SUCCESS] Core Phases Complete:\n{result.stdout}")
-        return True
+    def phase_2_taxonomy(self, manifest_path):
+        """Phase 2: Perception / Ontology"""
+        # Calling MDEC_Tagging_Taxonomy.psm1
+        pwsh_cmd = f"Import-Module './MDEC_Tagging_Taxonomy.psm1'; Start-MDECTaxonomy -Path '{manifest_path}'"
+        cmd = ["pwsh", "-ExecutionPolicy", "Bypass", "-Command", pwsh_cmd]
+        return self.run_script(cmd, "PHASE 2: TAXONOMY")
 
-    def phase_four_validation(self, file_path):
-        """Phase 4: Run the Quality Scorer"""
-        print(f"[PHASE 4] Executing Final Validation & Quality Scoring")
-        if self.scorer:
-            score_report = self.scorer.score_file(file_path)
-            return score_report
-        else:
-            return {'overall_score': 0, 'error': 'Scorer not initialized'}
+    def phase_3_orchestration(self, manifest_path):
+        """Phase 3: Motor Control / Healing"""
+        # Calling MDEC_Phase3_Orchestrator.psm1
+        pwsh_cmd = f"Import-Module './MDEC_Phase3_Orchestrator.psm1'; Start-MDECPhase3 -Path '{manifest_path}'"
+        cmd = ["pwsh", "-ExecutionPolicy", "Bypass", "-Command", pwsh_cmd]
+        return self.run_script(cmd, "PHASE 3: ORCHESTRATION")
 
-    def phase_five_smart_organization(self, file_path, category):
-        """Phase 5: Run the Smart Data Organizer Powerhouse"""
-        print(f"[PHASE 5] Engaging Smart Data Organizer for Vault placement...")
-        
-        try:
-            # We call the python script directly to organize the single file
-            # Or we utilize its internal mapping logic
-            # For this appliance flow, we replicate its core MDEC_STRUCTURE routing
-            import smart_data_organizer_powerhouse as sdop
-            
-            # Use the SDOP logic to determine the correct subfolder
-            ext = os.path.splitext(file_path)[1].lower()
-            target_folder = "09_Uncategorized"
-            for folder, metadata in sdop.MDEC_STRUCTURE.items():
-                if ext in metadata['extensions']:
-                    target_folder = folder
-                    break
-            
-            final_vault_path = os.path.join(VAULT_DIR, target_folder)
-            os.makedirs(final_vault_path, exist_ok=True)
-            
-            filename = os.path.basename(file_path)
-            dest_path = os.path.join(final_vault_path, filename)
-            
-            import shutil
-            shutil.move(file_path, dest_path)
-            print(f"[VAULT] Sealed via Smart Organizer at {dest_path}")
-            return dest_path
-            
-        except Exception as e:
-            print(f"[ERROR] Smart Organizer Failed: {e}")
-            # Fallback to base vault
-            filename = os.path.basename(file_path)
-            dest_path = os.path.join(VAULT_DIR, filename)
-            import shutil
-            shutil.move(file_path, dest_path)
-            print(f"[VAULT] Sealed (Fallback mapping) at {dest_path}")
-            return dest_path
+    def phase_4_validation(self, manifest_path):
+        """Phase 4: Critical Reflection / Quality Gate"""
+        # Calling mdec_auto_validator.py
+        cmd = ["python3", "mdec_auto_validator.py", "--validate", manifest_path]
+        return self.run_script(cmd, "PHASE 4: VALIDATION")
+
+    def phase_5_indexing(self, manifest_path):
+        """Phase 5: Hippocampus / Long-term Memory"""
+        # Calling Titaness_Data_Hyper_Indexer.py
+        cmd = ["python3", "Titaness_Data_Hyper_Indexer.py", "--index", manifest_path]
+        return self.run_script(cmd, "PHASE 5: INDEXING")
 
     def process_file(self, file_path):
-        """Main Loop: Process a single file through the pipeline."""
+        """Main Loop: Process a single file through the 5-phase Bio-Digital pipeline."""
         filename = os.path.basename(file_path)
-        print(f"\n{'='*50}\n[THRESHER] Ingesting: {filename}\n{'='*50}")
+        print(f"\n{'='*60}\n[TIE] INGESTING PAYLOAD: {filename}\n{'='*60}")
 
-        # 0. Minting Identity
-        identity = self.phase_zero_mint(file_path, "Auto-Ingest-Daemon")
-
-        # Create a temporary JSON payload wrapper mapping your mdec_manifest.json standard
-        payload = {
-            "m-id": identity.get('m_id', 'unknown'),
-            "file_name": filename,
-            "signet_creator": identity.get('signet_string', 'unknown'),
-            "status": "PROCESSING",
-            "file_path": file_path,
-            "generated_at": datetime.utcnow().isoformat() + "Z"
-        }
+        # Temporary manifest for handoffs between phases
+        manifest_path = f"/tmp/manifest_{int(time.time())}.json"
         
-        temp_manifest = f"/tmp/manifest_{identity.get('m_id', 'xxx')}.json"
-        with open(temp_manifest, 'w') as f:
-            json.dump([payload], f, indent=4)
+        # Phase 1
+        success, _ = self.phase_1_ingestion(file_path)
+        if not success: return False
 
-        # 1-3. PowerShell Auto-Tagging, Predictive Categorization & Healing
-        success = self.phase_one_to_three_automation(temp_manifest)
-        
-        if not success:
-            print(f"[FAIL] {filename} rejected during Phase 1-3 Engine processing.")
-            return
+        # Phase 2
+        success, _ = self.phase_2_taxonomy(manifest_path)
+        if not success: return False
 
-        # 4. Grading
-        final_score = self.phase_four_validation(temp_manifest)
-        overall = final_score.get('overall_score', 0)
+        # Phase 3
+        success, _ = self.phase_3_orchestration(manifest_path)
+        if not success: return False
 
-        print(f"[RESULT] Final MdEC Quality Score: {overall}/100")
+        # Phase 4
+        success, _ = self.phase_4_validation(manifest_path)
+        if not success: return False
 
-        # 5. Archival Logic & Smart Organization
-        if overall >= 90:
-            print(f"[VAULT] Platinum Certified. Initiating Phase 5.")
-            category = "Unknown" # Ideally pulled from the payload
-            self.phase_five_smart_organization(file_path, category)
-        else:
-            print(f"[REJECTED] Score ({overall}) too low. File remains in Staging for manual review/deep healing.")
-            # Rename the file so the loop doesn't infinitely re-process the exact same failure
-            try:
-                os.rename(file_path, file_path + ".rejected")
-            except Exception as e:
-                pass
+        # Phase 5
+        success, _ = self.phase_5_indexing(manifest_path)
+        if not success: return False
 
-
+        print(f"\n[SUCCESS] Payload {filename} successfully moved to Post-Chaos Long-term Memory.")
+        return True
 
 if __name__ == "__main__":
-    thresher = ThresherPipeline()
-    print("================================================")
-    print("   MDEC THRESHER ORCHESTRATOR NODE ONLINE")
-    print("================================================")
-    print(f"Watching for drops in: {STAGING_DIR}", flush=True)
+    tie = IngestionEnginePipeline()
+    print("================================================================")
+    print("   TITANESS INGESTION ENGINE (TIE) CORE ONLINE")
+    print("================================================================")
+    print(f"Watching for sensory input in: {STAGING_DIR}", flush=True)
     
-    # Polling loop representing the container's heartbeat
     while True:
         try:
             for file in os.listdir(STAGING_DIR):
-                # Only process files that haven't been marked as rejected
                 if not file.endswith('.rejected'):
                     full_path = os.path.join(STAGING_DIR, file)
                     if os.path.isfile(full_path):
-                        thresher.process_file(full_path)
+                        tie.process_file(full_path)
             
-            # Check the directory every 5 minutes (300 seconds) vs rapid polling
             time.sleep(300)
         except KeyboardInterrupt:
-            print("\nThresher Node shutting down.")
+            print("\nTIE Node shutting down.")
             sys.exit(0)

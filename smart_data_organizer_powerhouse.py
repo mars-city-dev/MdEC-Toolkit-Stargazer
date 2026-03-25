@@ -10,6 +10,17 @@ from datetime import datetime
 from collections import Counter, defaultdict
 import sys
 
+# VNN Organ Integration
+try:
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if PROJECT_ROOT not in sys.path: sys.path.append(PROJECT_ROOT)
+    from bio_digital.hippocampus import log_signal, NeuralSignalType, SeverityLevel
+    from bio_digital.endocrine_system import endocrine_system, Hormone
+    VNN_ORGANS_AVAILABLE = True
+except ImportError:
+    VNN_ORGANS_AVAILABLE = False
+    log_signal = None
+
 # Setup Logging
 logging.basicConfig(
     level=logging.INFO,
@@ -90,6 +101,11 @@ class SmartDataOrganizerPowerhouse:
 
         # Metadata and tracking
         self.metadata_dir = self.dest_dir / ".metadata"
+        # Override metadata dir if MDEC_VAULT_ROOT is set
+        vault_root = os.getenv("MDEC_VAULT_ROOT")
+        if vault_root:
+            self.metadata_dir = Path(vault_root) / ".metadata"
+            
         self.metadata_file = self.metadata_dir / "smart_metadata.json"
         self.processed_files = self.load_metadata()
 
@@ -231,8 +247,33 @@ class SmartDataOrganizerPowerhouse:
                 else:
                     self.updated_files.append(file_data)
 
+                # --- AUTONOMOUS ADAPTATION: STRESS VETO ---
+                if VNN_ORGANS_AVAILABLE:
+                    cortisol = endocrine_system.get_hormone_levels().get(Hormone.CORTISOL, 0.0)
+                    if cortisol > 0.7 and category in ["02_Media", "06_Assets"]:
+                        logging.warning(f"🚫 [ADAPTIVE VETO] High Stress (Cortisol: {cortisol:.2f}). Suppressing non-essential move of {file}")
+                        if log_signal:
+                            log_signal(
+                                NeuralSignalType.ETHICAL_VETO, 
+                                "SMART-DOP", 
+                                f"Inhibited Media move to conserve homeostasis",
+                                SeverityLevel.INFO,
+                                {"file": file, "hormone": "CORTISOL"}
+                            )
+                        continue
+
                 self.metrics[category] += 1
                 count += 1
+                
+                # --- RESONANCE LOGGING ---
+                if VNN_ORGANS_AVAILABLE and count % 50 == 0:
+                    resonance_type = "Cognitive Growth" if category in ["01_Documents", "04_Code"] else "Homeostasis"
+                    log_signal(
+                        NeuralSignalType.INFO,
+                        "SMART-DOP",
+                        f"Processed {count} files. Resonance: {resonance_type}",
+                        SeverityLevel.INFO
+                    )
 
                 if total_scanned % 1000 == 0:
                     print(f" scanned {total_scanned} files, {count} need processing...", end='\r')
@@ -280,7 +321,12 @@ class SmartDataOrganizerPowerhouse:
                     target = self.duplicate_check(target)
                     target.parent.mkdir(parents=True, exist_ok=True)
 
-                    if move_mode:
+                    if str(target).startswith("gs://"):
+                        # Cloud Storage Stub
+                        logging.info(f"☁️ [CLOUD STUB] Uploading {src.name} to {target}")
+                        # In real implementation: storage.Client().bucket(b).blob(p).upload_from_filename(src)
+                        pass
+                    elif move_mode:
                         shutil.move(src, target)
                     else:
                         shutil.copy2(src, target)
