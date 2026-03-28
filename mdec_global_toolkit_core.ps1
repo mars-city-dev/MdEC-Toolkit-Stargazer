@@ -14,17 +14,17 @@ function Show-Header {
 }
 
 function Invoke-Auditor {
-    Write-Host "[MGT-AUDITOR] Scanning [RAW] for compliance..." -ForegroundColor Cyan
-    # Logic: Loop through [RAW], check naming patterns
-    Write-Host "RESULT: 12 Files found, 4 require naming corrections." -ForegroundColor Yellow
-    Pause
+    Write-Host "[MGT-AUDITOR] Scanning [RAW] for compliance via Powerhouse Logic..." -ForegroundColor Cyan
+    # Call the Powerhouse logic in MdEC-Toolkit-Stargazer
+    python "D:\Projects\MdEC-Toolkit-Stargazer\smart_data_organizer_powerhouse.py" --audit --dir "D:\Projects\MDEC-Consortium\RAW"
+    Write-Host "AUDIT COMPLETE: Check manifest for compliance results." -ForegroundColor Green
 }
 
 function Invoke-Certifier {
-    Write-Host "[MGT-CERTIFIER] Calculating Quality Scores..." -ForegroundColor Cyan
-    # Logic: Apply (Completeness x 0.4) + (Accuracy x 0.3) + (Consistency x 0.2) + (Automation x 0.1)
-    Write-Host "CURRENT NODE STATUS: SILVER (82%)" -ForegroundColor Gray
-    Pause
+    Write-Host "[MGT-CERTIFIER] Calculating Quality Scores via MDEC Scorer..." -ForegroundColor Cyan
+    # Call the Quality Scorer logic
+    python "D:\Projects\MdEC-Toolkit-Stargazer\mdec_quality_scorer.py" --dir "D:\Projects\MDEC-Consortium\RAW"
+    Write-Host "SCORE CALCULATION COMPLETE." -ForegroundColor Green
 }
 
 # --- MAIN MENU LOOP ---

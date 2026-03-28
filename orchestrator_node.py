@@ -18,10 +18,11 @@ import time
 import subprocess
 from datetime import datetime
 
-# Directories mapped in Docker Volumes
-STAGING_DIR = "/app/vault/staging"
-VAULT_DIR = "/app/vault/platinum_certified"
-METADATA_MANIFEST = "/app/vault/mdec_manifest.json"
+# Local Windows Paths (Native Deployment)
+STAGING_DIR = "E:/MDEC_VAULT_PROOF_CONCEPT"
+# Ensure we use a local vault dir within the project or a specified path
+VAULT_DIR = "D:/Projects/MdEC-Toolkit-Stargazer/vault/platinum_certified"
+METADATA_MANIFEST = "D:/Projects/MdEC-Toolkit-Stargazer/vault/mdec_manifest.json"
 
 class IngestionEnginePipeline:
     def __init__(self):
@@ -42,7 +43,7 @@ class IngestionEnginePipeline:
     def phase_1_ingestion(self, file_path):
         """Phase 1: Sensory Intake & Cryptographic Sorting"""
         # Calling smart_data_organizer_powerhouse.py
-        cmd = ["python3", "smart_data_organizer_powerhouse.py", "--ingest", file_path]
+        cmd = ["python", "smart_data_organizer_powerhouse.py", "--ingest", file_path]
         return self.run_script(cmd, "PHASE 1: INGESTION")
 
     def phase_2_taxonomy(self, manifest_path):
@@ -62,13 +63,13 @@ class IngestionEnginePipeline:
     def phase_4_validation(self, manifest_path):
         """Phase 4: Critical Reflection / Quality Gate"""
         # Calling mdec_auto_validator.py
-        cmd = ["python3", "mdec_auto_validator.py", "--validate", manifest_path]
+        cmd = ["python", "mdec_auto_validator.py", "--validate", manifest_path]
         return self.run_script(cmd, "PHASE 4: VALIDATION")
 
     def phase_5_indexing(self, manifest_path):
         """Phase 5: Hippocampus / Long-term Memory"""
         # Calling Titaness_Data_Hyper_Indexer.py
-        cmd = ["python3", "Titaness_Data_Hyper_Indexer.py", "--index", manifest_path]
+        cmd = ["python", "Titaness_Data_Hyper_Indexer.py", "--index", manifest_path]
         return self.run_script(cmd, "PHASE 5: INDEXING")
 
     def process_file(self, file_path):
